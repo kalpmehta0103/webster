@@ -29,5 +29,8 @@ module.exports = new mongoose.Schema({
     isVerified: {
         type: Boolean,
         default: false
+    },
+    profilePicture: {
+        type: String
     }
 })

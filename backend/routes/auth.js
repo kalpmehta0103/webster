@@ -9,24 +9,70 @@ const googleOAuth = require('passport-google-oauth2');
 const findOrCreate = require('mongoose-findorcreate');
 const passportLocalMongoose = require('passport-local-mongoose');
 const crypto = require('crypto');
+const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
 
 const Token = require('../models/Token');
 const User = require('../models/User');
+const upload = require('../middleware/multer-config');
 const sendEmail = require('../middleware/sendEmail');
+const configCloudinary = require('../utils/cloudinary-config');
+
+configCloudinary();
 
 //route-1: Signup
-router.post('/signup', async(req, res) => {
+router.post('/signup', upload.single('profilePicture'),  async(req, res) => {
     let success = false;
     
+    
     const {email, password, name, regNo, number, branch, year} = req.body;
+    // console.log(req.file.buffer);
+    // const result = await cloudinary.uploader.upload_stream({folder: 'websterProfile'}, (err, res) => {
+    //     if(err) {
+    //         res.status(500).json({message: "Cannot upload the image"})
+    //     }
+    // }).end(req.file.buffer);  
+    // console.log(result);
+    const uploadResult = await cloudinary.uploader
+        .upload(
+            req.file.path, {
+                folder: 'webster',
+                public_id: 'websterProfile' + req.file.originalname,
+            }
+        )
+        .catch((error) => {
+            console.log(error);
+        });
+    
+    console.log(uploadResult);
+    
+
     let user = await User.findOne({email: email});
     if(user) {
         res.status(400).json({message: "User already exist"});
     } 
+    console.log(password);
+    
     const salt = await bcrypt.genSalt(10);
     const securedPassword = await bcrypt.hash(password, salt);
+    console.log(typeof(uploadResult.secure_url) + " " + uploadResult.secure_url);
     
-    user = await new User({...req.body, password: securedPassword}).save();
+    
+    user = await new User({
+        email: email,
+        password: securedPassword,
+        name: name,
+        regNo: regNo,
+        number: number,
+        branch: branch,
+        year: year,
+        profilePicture: uploadResult.secure_url
+    }).save();
+    fs.unlink((req.file.path), (err) => {
+        if(err) console.log(err);
+        else console.log("Deleted File");
+    })
+    console.log(user.profilePicture);
     const data = {
         user: {
             id: user.id
