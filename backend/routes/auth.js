@@ -26,13 +26,6 @@ router.post('/signup', upload.single('profilePicture'),  async(req, res) => {
     
     
     const {email, password, name, regNo, number, branch, year} = req.body;
-    // console.log(req.file.buffer);
-    // const result = await cloudinary.uploader.upload_stream({folder: 'websterProfile'}, (err, res) => {
-    //     if(err) {
-    //         res.status(500).json({message: "Cannot upload the image"})
-    //     }
-    // }).end(req.file.buffer);  
-    // console.log(result);
     const uploadResult = await cloudinary.uploader
         .upload(
             req.file.path, {
@@ -44,9 +37,6 @@ router.post('/signup', upload.single('profilePicture'),  async(req, res) => {
             console.log(error);
         });
     
-    console.log(uploadResult);
-    
-
     let user = await User.findOne({email: email});
     if(user) {
         res.status(400).json({message: "User already exist"});
@@ -78,7 +68,6 @@ router.post('/signup', upload.single('profilePicture'),  async(req, res) => {
             id: user.id
         }
     }
-    console.log(user);
     const token = await new Token({
         userId: user._id,
         token: crypto.randomBytes(32).toString("hex")
@@ -111,7 +100,6 @@ router.post('/login', async (req, res) => {
                 id: user.id
             }
         }
-        console.log(data);
         
         if(!user.isVerified) {
             // console.log();
