@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-module.exports = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
     email: { 
         type: String,
         required: true,
@@ -22,15 +22,15 @@ module.exports = new mongoose.Schema({
     },
     year: {
         type: String
-    }, 
-    profilePhoto: {
-        type: String
-    }, 
+    },  
     isVerified: {
         type: Boolean,
         default: false
     },
     profilePicture: {
-        type: String
+        type: String,
+        default: 'https://res.cloudinary.com/dohsbkivm/image/upload/v1730283142/webster/websterProfilevecteezy_user-icon-on-transparent-background_19879186.png.png'
     }
-})
+});
+
+module.exports = userSchema;
