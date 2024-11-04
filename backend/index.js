@@ -24,6 +24,7 @@ app.use('/auth', require('./routes/auth'));
 app.use('/leaderboard', require('./routes/leaderboard'));
 app.use('/updateProfile', require('./routes/updateProfile'));
 app.use('/timetable', require('./routes/timetable'));
+app.use('/points', require('./routes/points'));
 app.listen(5000, () => {
     console.log('http://localhost:5000/');
 })
