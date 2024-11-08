@@ -6,6 +6,8 @@ const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const session = require('express-session');
 const googleOAuth = require('passport-google-oauth2').Strategy;
+const githubOAuth = require('passport-github2').Strategy;
+const facebookOAuth = require('passport-facebook').Strategy;
 // const findOrCreate = require('mongoose-findorcreate');
 const findOrCreate = require('mongoose-findorcreate');
 const passportLocalMongoose = require('passport-local-mongoose');
@@ -19,6 +21,7 @@ const User = require('../models/User');
 const upload = require('../middleware/multer-config');
 const sendEmail = require('../middleware/sendEmail');
 const configCloudinary = require('../utils/cloudinary-config');
+const { log } = require('console');
 
 configCloudinary();
 router.use(session({
@@ -48,7 +51,7 @@ passport.use(new googleOAuth({
     try {
         console.log(profile);
         
-        const user = await User.findOne({googleId: profile.id, email: profile.email})
+        const user = await User.findOne({googleId: profile.id, email: profile.emails[0].value})
         if(!user) {
             new User({
                 username_1: profile.email,
@@ -62,6 +65,56 @@ passport.use(new googleOAuth({
         console.log(err);
     }
 }));
+
+// creating github stratergy
+passport.use(new githubOAuth({
+    clientID: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    callbackURL: 'http://localhost:5000/auth/github/webster',
+    passReqToCallback: true,
+    scope: [ 'user:emails' ]
+}, async (req, accessToken, refreshToken, profile, cb) => {
+    try {
+        console.log(profile);
+        console.log(profile.login);
+        // github not providing any email in return so soring github username in email field
+        const user = await User.findOne({name: profile._json.name});
+        if(!user) {
+            user = new User({
+                email: profile._json.login,
+                name: profile._json.name,
+                profilePicture: profile._json.avatar_url,
+                isVerified: true
+            }).save();
+        }
+    } catch (err) {
+        console.log(err);
+    }
+}));
+
+// facebook oAuth
+passport.use(new facebookOAuth({
+    clientID: process.env.FACEBOOK_CLIENT_ID,
+    clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+    callbackURL: "http://localhost:5000/auth/facebook/webster",
+    profileFields: ['email','id', 'first_name', 'gender', 'last_name', 'picture']
+}, async (accessToken, refreshToken, profile, cb) => {
+    try {
+        console.log(profile);
+        const user = await User.findOne({email: profile._json.email});
+        if(!user) {
+            new User({
+                email: profile._json.email,
+                name: profile._json.first_name + ' ' + profile._json.last_name,
+                profilePicture: profile.photos[0].value,
+                isVerified: true
+            }).save();
+        }
+    } catch (error) {
+        console.log(error);
+    }
+}));
+
 //route-1: Signup
 router.post('/signup', upload.single('profilePicture'),  async(req, res) => {
     try {
@@ -201,11 +254,30 @@ router.get("/:id/verify/:token", async (req, res) => {
 });
 
 router.get('/google', passport.authenticate('google', {scope: ['profile', 'email']}));
+router.get('/github', passport.authenticate('github', {scope: ['profile', 'email']}));
+router.get('/facebook', passport.authenticate('facebook', {scope: ['public_profile', 'email']}));
+
 router.get('/google/webster',
     passport.authenticate('google', {failureRedirect: '/'}),
     (req, res) => {
         console.log(res);
         res.status(201).json("successful");
+    }
+);
+
+router.get('/github/webster', 
+    passport.authenticate('github', {failureRedirect: '/'}),
+    (req, res) => {
+        console.log(res);
+        res.status(201).json("successfull");
+    }
+);
+
+router.get('/facebook/webster', 
+    passport.authenticate('facebook', {failureRedirect: '/'}),
+    (req, res) => {
+        console.log(res);
+        res.status(201).json("successfull");
     }
 );
 

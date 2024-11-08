@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const Point = require('../models/Point');
 
 const findLeaderboard = (days) => {
